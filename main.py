@@ -1,9 +1,10 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from api.classes.SentinelClient import SentinelClient
+from api.classes.SatelliteDataRequest import SatelliteDataRequest
 
 from api.routes.geolocation_router import geolocationRouter
-
+from api.routes.geolocation_real_time import geolocationRealtime
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -14,6 +15,7 @@ app.add_middleware(
 )
 
 app.include_router(geolocationRouter)
+app.include_router(geolocationRealtime)
 
   
   
