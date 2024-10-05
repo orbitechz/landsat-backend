@@ -23,7 +23,6 @@ def fetch_tle(satellite_id: str):
     return data['tle']  # Retorna a linha do TLE
 
 # Função para calcular o bounding box com base no TLE e na posição atual
-@app.get("/geolocation/tle/{satellite_id}")
 async def get_satellite_bbox(satellite_id: str):
     try:
         # Obtenção do TLE via API N2YO
@@ -58,7 +57,8 @@ async def get_satellite_bbox(satellite_id: str):
             "max_longitude": longitude + delta,
         }
 
-        return {"bbox": bbox}
+        #return {"bbox": bbox}
+        return {"to triste jean"}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

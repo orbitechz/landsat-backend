@@ -67,7 +67,7 @@ async def satellite_route(tle: str):
 @geolocationRealtime.get("/geolocation/tle/{satellite_id}")
 async def get_satellite_tle(satellite_id: str):
     try:
-        tle_data = fetch_tle(satellite_id)
+        tle_data = get_satellite_bbox(satellite_id)
         return {
             "status": "success",
             "tle": tle_data
