@@ -1,15 +1,10 @@
 from fastapi import Depends, FastAPI
-from typing_extensions import Annotated
-from functools import lru_cache
-from api.utils import config
+from api.classes.SentinelClient import SentinelClient
 
 app = FastAPI()
-
-@lru_cache
-def get_settings():
-    return config.Settings()
-
+sentinel_client = SentinelClient()
+token = sentinel_client.get_valid_token()
 
 @app.get("/")
-async def info(settings: Annotated[config.Settings, Depends(get_settings)]):
-    return {"message": settings.auth_url} 
+async def info():
+    return {"token": token} 
