@@ -12,4 +12,4 @@ def get_settings():
 
 @app.get("/")
 async def info(settings: Annotated[config.Settings, Depends(get_settings)]):
-    return {"message": settings.auth_url}
+    return {"message": settings.auth_url} 
