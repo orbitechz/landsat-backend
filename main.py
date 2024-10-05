@@ -1,10 +1,21 @@
-from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 from api.classes.SentinelClient import SentinelClient
 
-app = FastAPI()
-sentinel_client = SentinelClient()
-token = sentinel_client.get_valid_token()
+from api.routes.geolocation_router import geolocationRouter
 
-@app.get("/")
-async def info():
-    return {"token": token} 
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(geolocationRouter)
+
+  
+  
+# sentinel_client = SentinelClient()
+# token = sentinel_client.get_valid_token()
