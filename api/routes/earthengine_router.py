@@ -94,7 +94,7 @@ async def get_gee_urls():
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
-@earthengineRouter.get("/gee-data-coords") 
+@earthengineRouter.get("/gee-data-coords")
 async def get_gee_urls_coords(
     lat_min: float = Query(..., description="Latitude mínima do retângulo de coordenadas"),
     lon_min: float = Query(..., description="Longitude mínima do retângulo de coordenadas"),
@@ -105,22 +105,30 @@ async def get_gee_urls_coords(
         # Definir a área de interesse (ROI) usando as coordenadas passadas
         roi = ee.Geometry.Rectangle([lon_min, lat_min, lon_max, lat_max])
 
-        # Coleção Landsat 9, Tier 2
+        # Função para mascarar nuvens usando a banda de qualidade
+        def maskLandsat(image):
+            qa = image.select('QA_PIXEL')  # QA_PIXEL contém informações sobre qualidade dos pixels
+            cloud_shadow_bit_mask = 1 << 3  # Bit 3: sombras de nuvens
+            clouds_bit_mask = 1 << 5        # Bit 5: nuvens
+            mask = qa.bitwiseAnd(cloud_shadow_bit_mask).eq(0) \
+                      .And(qa.bitwiseAnd(clouds_bit_mask).eq(0))  # True se não houver nuvens/sombras
+            return image.updateMask(mask)
+
+        # Coleção Landsat 8, Surface Reflectance (T1)
         collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA') \
-            .filterBounds(roi)  # Filtrar a coleção para imagens dentro da ROI
+            .filterBounds(roi) \
+            .filterDate('2024-01-01', '2024-01-20') \
+            .map(maskLandsat)  # Aplicar a função de mascaramento de nuvens
 
-        # Criar um mosaico das imagens mais recentes na área de interesse
-        image = collection.filterDate('2024-01-01', '2024-01-20').mosaic()
-
-        # Aplicar uma máscara para remover pixels nulos
-        # image = image.updateMask(image.select('SR_B4').gt(0))
-
+        # Criar um mosaico usando a mediana dos valores de pixel para suavizar bordas
+        image = collection.median()
         # Parâmetros de visualização ajustados
         vis_params = {
-            'bands': ['B4', "B3", "B2"],  # Red, Green, Blue
-            'min': 0,  # Ajuste dos valores mínimos
-            'max': 0.4, # Ajuste dos valores máximos
-            'gamma': 1.6   # Ajuste de brilho
+            'bands': ['B10', 'B6'],  
+            'min': 0,                    
+            'max': 0.2,                 
+            'gamma': 1                  
+            # 'palette': ['blue', 'green', \'yellow', 'red']
         }
 
         # Gerar a URL dos tiles
@@ -128,6 +136,6 @@ async def get_gee_urls_coords(
         tile_url = map_id_dict['tile_fetcher'].url_format
 
         return JSONResponse({"tile_url": tile_url})
-    
+
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
