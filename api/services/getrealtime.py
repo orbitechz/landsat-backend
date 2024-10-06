@@ -1,14 +1,17 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter
 import requests
-from skyfield.api import load
+from skyfield.api import load, EarthSatellite
+from typing import List, Dict
 
-app = FastAPI()
+
+geolocationRealtime = APIRouter()
 
 API_KEY = '9PG6XR-NBWE6Z-68AWZD-5CJL'  # Substitua pela sua chave de API do N2YO
 
 # Função para buscar o TLE a partir da API do N2YO
-def fetch_tle(satellite_id: str):
-    url = f"https://api.n2yo.com/rest/v1/satellite/tle/{satellite_id}&apiKey={API_KEY}"
+def fetch_tle(satellite_id: str) -> List[str]:
+    # Corrigir a URL para ter o '?' antes do apiKey
+    url = f"https://api.n2yo.com/rest/v1/satellite/tle/{satellite_id}?apiKey={API_KEY}"
     
     response = requests.get(url)
     
@@ -17,39 +20,39 @@ def fetch_tle(satellite_id: str):
     
     data = response.json()
     
-    if 'tle' not in data or not data['tle']:
+    # Corrigir a extração do TLE e dividir corretamente em duas linhas
+    tle = data.get('tle', None)
+    
+    if not tle:
         raise HTTPException(status_code=404, detail="TLE data not found for the given satellite ID.")
     
-    return data['tle']  # Retorna a linha do TLE
+    # Separar o TLE em duas linhas usando '\r\n'
+    tle_lines = tle.split("\r\n")
+    
+    if len(tle_lines) != 2:
+        raise HTTPException(status_code=500, detail="Invalid TLE data format.")
+    
+    return tle_lines
 
 # Função para calcular o bounding box com base no TLE e na posição atual
-async def get_satellite_bbox(satellite_id: str):
+def get_satellite_bbox(tle_lines: List[str]) -> Dict[str, Dict[str, float]]:
     try:
-        # Obtenção do TLE via API N2YO
-        tle_data = fetch_tle(satellite_id)
-        
-        # O TLE contém duas linhas separadas, então dividimos as strings
-        tle_lines = tle_data.splitlines()
+        # Verificar se as duas linhas do TLE estão corretas e passar separadamente
+        line1 = tle_lines[0]
+        line2 = tle_lines[1]
 
-        # Carregar o TLE no Skyfield
-        satellite = load.tle_file(tle_lines)[0]  # Carrega o TLE no formato esperado pelo Skyfield
-        
-        # Carregar o tempo atual
+        # Carregar o satélite usando os dados TLE
+        satellite = EarthSatellite(line1, line2, 'satellite', load.timescale())
         ts = load.timescale()
         current_time = ts.now()
-
-        # Obter a posição geocêntrica do satélite
         geocentric = satellite.at(current_time)
-        
-        # Posição geocêntrica do satélite (latitude e longitude)
-        subpoint = geocentric.subpoint()
-        latitude = subpoint.latitude.degrees
-        longitude = subpoint.longitude.degrees
 
-        # Definir o tamanho do bounding box (ajustável)
-        delta = 0.5  # Em graus, por exemplo
+        # Extrair latitude e longitude da subponto (ponto na Terra diretamente abaixo do satélite)
+        longitude = geocentric.subpoint().longitude.degrees
+        latitude = geocentric.subpoint().latitude.degrees
 
-        # Calcular o bounding box
+        # Definir delta para o bounding box
+        delta = 0.5
         bbox = {
             "min_latitude": latitude - delta,
             "max_latitude": latitude + delta,
@@ -57,8 +60,6 @@ async def get_satellite_bbox(satellite_id: str):
             "max_longitude": longitude + delta,
         }
 
-        #return {"bbox": bbox}
-        return {"to triste jean"}
-    
+        return {"bbox": bbox}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

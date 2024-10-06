@@ -18,8 +18,8 @@ app.add_middleware(
 app.include_router(geolocationRouter)
 app.include_router(geolocationRealtime)
 
-if __name__ == "__main__":
-    uvicorn.run(app,host = "0.0.0.0", port=8000)  
+#if __name__ == "__main__":
+#    uvicorn.run(app,host = "0.0.0.0", port=8000)  
   
 # sentinel_client = SentinelClient()
 # token = sentinel_client.get_valid_token()

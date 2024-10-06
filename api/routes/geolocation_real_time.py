@@ -57,20 +57,27 @@ async def satellite_data(request: SatelliteDataRequest):
 
 # Endpoint para calcular a rota do satélite (agora retorna o bbox)
 @geolocationRealtime.post("/geolocation/satellite-route")
-async def satellite_route(tle: str):
+async def satellite_route(tle: List[str]):
     try:
         bbox = get_satellite_bbox(tle)
         return {"status": "success", "bbox": bbox}, 200
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @geolocationRealtime.get("/geolocation/tle/{satellite_id}")
 async def get_satellite_tle(satellite_id: str):
     try:
-        tle_data = get_satellite_bbox(satellite_id)
+        # Buscar os dados TLE com base no satellite_id
+        tle_lines = fetch_tle(satellite_id)
+        
+        # Calcular o bounding box com base nos dados TLE
+        bbox = get_satellite_bbox(tle_lines)
+        
         return {
             "status": "success",
-            "tle": tle_data
+            "tle": tle_lines,  # Retorna as linhas TLE
+            "bbox": bbox  # Retorna o bounding box calculado
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
