@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from api.classes.SentinelClient import SentinelClient
 
 from api.routes.geolocation_router import geolocationRouter
+from api.routes.earthengine_router import earthengineRouter
 
 app = FastAPI()
 app.add_middleware(
@@ -14,6 +15,7 @@ app.add_middleware(
 )
 
 app.include_router(geolocationRouter)
+app.include_router(earthengineRouter)
 
   
   
