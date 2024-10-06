@@ -6,6 +6,7 @@ from api.classes.SatelliteDataRequest import SatelliteDataRequest
 from skyfield.api import load
 
 from api.services.getrealtime import fetch_tle
+from api.services.getrealtime import get_predicted_bbox
 
 geolocationRealtime = APIRouter()
 
@@ -65,19 +66,23 @@ async def satellite_route(tle: List[str]):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Endpoint para buscar o TLE e calcular o bounding box
 @geolocationRealtime.get("/geolocation/tle/{satellite_id}")
-async def get_satellite_tle(satellite_id: str):
+async def predict_satellite_bbox(satellite_id: str):
     try:
         # Buscar os dados TLE com base no satellite_id
-        tle_lines = fetch_tle(satellite_id)
+        tle = fetch_tle(satellite_id)
+
+        # Log para verificar o formato do TLE
+        print(f"TLE recebido: {tle}")
         
-        # Calcular o bounding box com base nos dados TLE
-        bbox = get_satellite_bbox(tle_lines)
+        # Calcular o bounding box previsto com base nos dados TLE
+        predicted_bbox = get_predicted_bbox(tle)
         
         return {
             "status": "success",
-            "tle": tle_lines,  # Retorna as linhas TLE
-            "bbox": bbox  # Retorna o bounding box calculado
+            "tle": tle,  # Retorna as linhas TLE
+            "predicted_bbox": predicted_bbox  # Retorna o bounding box previsto
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
