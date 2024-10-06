@@ -99,7 +99,9 @@ async def get_gee_urls_coords(
     lat_min: float = Query(..., description="Latitude mínima do retângulo de coordenadas"),
     lon_min: float = Query(..., description="Longitude mínima do retângulo de coordenadas"),
     lat_max: float = Query(..., description="Latitude máxima do retângulo de coordenadas"),
-    lon_max: float = Query(..., description="Longitude máxima do retângulo de coordenadas")
+    lon_max: float = Query(..., description="Longitude máxima do retângulo de coordenadas"),
+    filter: str = Query(..., description="Filtro")
+
 ):
     try:
         # Definir a área de interesse (ROI) usando as coordenadas passadas
@@ -117,21 +119,22 @@ async def get_gee_urls_coords(
         # Coleção Landsat 8, Surface Reflectance (T1)
         collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA') \
             .filterBounds(roi) \
-            .filterDate('2024-01-01', '2024-01-20') \
-            .map(maskLandsat)  # Aplicar a função de mascaramento de nuvens
+            .filterDate('2017-01-01', '2024-12-31') \
+            .map(maskLandsat) 
 
-        # Criar um mosaico usando a mediana dos valores de pixel para suavizar bordas
         image = collection.median()
-        # Parâmetros de visualização ajustados
+        bands = []
+        if(filter == "truecolor"): bands =  ['B4', 'B3', 'B2']
+        if(filter == "infrared"): bands =  ['B6', 'B7', 'B5']
+        if(filter == "thermal"): bands =  ['B10', 'B6']
+        
         vis_params = {
-            'bands': ['B10', 'B6'],  
+            'bands': bands,  
             'min': 0,                    
             'max': 0.2,                 
             'gamma': 1                  
-            # 'palette': ['blue', 'green', \'yellow', 'red']
         }
 
-        # Gerar a URL dos tiles
         map_id_dict = image.getMapId(vis_params)
         tile_url = map_id_dict['tile_fetcher'].url_format
 
