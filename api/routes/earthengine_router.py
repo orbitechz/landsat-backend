@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 import ee
 from starlette.responses import JSONResponse
@@ -70,17 +70,17 @@ async def get_gee_data():
 async def get_gee_urls():
     try:
         # Coleção de imagens do Landsat 9
-        collection = ee.ImageCollection('LANDSAT/LC09/C02/T2')
+        collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA')
 
         # Selecionar a imagem mais recente da coleção
-        image = collection.filterDate('2023-01-01', '2023-02-01').mosaic()
+        image = collection.filterDate('2017-01-01', '2017-01-16').mosaic()
 
 
         # Parâmetros de visualização para as bandas RGB
         vis_params = {
             'bands': ['B2', 'B3', 'B4'],  
-            'min': 100,
-            'max': 3500,
+            'min': 0,
+            'max': 0.4,
             'gamma': 1.4
         }
 
@@ -89,6 +89,44 @@ async def get_gee_urls():
         tile_url = map_id_dict['tile_fetcher'].url_format
 
         # Retornar a URL dos tiles para o frontend
+        return JSONResponse({"tile_url": tile_url})
+    
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@earthengineRouter.get("/gee-data-coords") 
+async def get_gee_urls_coords(
+    lat_min: float = Query(..., description="Latitude mínima do retângulo de coordenadas"),
+    lon_min: float = Query(..., description="Longitude mínima do retângulo de coordenadas"),
+    lat_max: float = Query(..., description="Latitude máxima do retângulo de coordenadas"),
+    lon_max: float = Query(..., description="Longitude máxima do retângulo de coordenadas")
+):
+    try:
+        # Definir a área de interesse (ROI) usando as coordenadas passadas
+        roi = ee.Geometry.Rectangle([lon_min, lat_min, lon_max, lat_max])
+
+        # Coleção Landsat 9, Tier 2
+        collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA') \
+            .filterBounds(roi)  # Filtrar a coleção para imagens dentro da ROI
+
+        # Criar um mosaico das imagens mais recentes na área de interesse
+        image = collection.filterDate('2024-01-01', '2024-01-20').mosaic()
+
+        # Aplicar uma máscara para remover pixels nulos
+        # image = image.updateMask(image.select('SR_B4').gt(0))
+
+        # Parâmetros de visualização ajustados
+        vis_params = {
+            'bands': ['B4', "B3", "B2"],  # Red, Green, Blue
+            'min': 0,  # Ajuste dos valores mínimos
+            'max': 0.4, # Ajuste dos valores máximos
+            'gamma': 1.6   # Ajuste de brilho
+        }
+
+        # Gerar a URL dos tiles
+        map_id_dict = image.getMapId(vis_params)
+        tile_url = map_id_dict['tile_fetcher'].url_format
+
         return JSONResponse({"tile_url": tile_url})
     
     except Exception as e:

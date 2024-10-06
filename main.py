@@ -6,6 +6,8 @@ from api.classes.SatelliteDataRequest import SatelliteDataRequest
 
 from api.routes.geolocation_router import geolocationRouter
 from api.routes.geolocation_real_time import geolocationRealtime
+from api.routes.earthengine_router import earthengineRouter
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -17,6 +19,7 @@ app.add_middleware(
 
 app.include_router(geolocationRouter)
 app.include_router(geolocationRealtime)
+app.include_router(earthengineRouter)
 
 #if __name__ == "__main__":
 #    uvicorn.run(app,host = "0.0.0.0", port=8000)  
